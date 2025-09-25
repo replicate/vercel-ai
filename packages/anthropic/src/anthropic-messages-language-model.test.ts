@@ -3,15 +3,19 @@ import {
   LanguageModelV2StreamPart,
   JSONValue,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { type DocumentCitation } from './anthropic-messages-language-model';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -395,6 +399,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         // custom header
         'test-header': 'test-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/anthropic/0.0.0-test`,
+      );
     });
 
     it('should send the model id and settings', async () => {
@@ -553,7 +560,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
-              },
+              } satisfies AnthropicProviderOptions,
             },
           },
         ],
@@ -679,9 +686,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       const model = provider('claude-3-haiku-20240307');
 
       const result = await model.doGenerate({
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-        },
         prompt: [
           {
             role: 'user',
@@ -689,7 +693,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral', ttl: '1h' },
-              },
+              } satisfies AnthropicProviderOptions,
             },
           },
         ],
@@ -2534,9 +2538,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
-        },
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
